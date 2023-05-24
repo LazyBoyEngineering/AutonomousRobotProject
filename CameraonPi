@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+import cv2, serial, time
+from pyzbar import pyzbar
+
+# initialize the camera
+camera = cv2.VideoCapture(0)
+
+# loop over frames from the camera
+while True:
+    ser = serial.Serial('/dev/ttyUSB0',9600, timeout=1)
+    ser.flush()
+    # grab the current frame
+    ret, frame = camera.read()
+
+    # find and decode QR codes in the frame
+    decoded_objs = pyzbar.decode(frame)
+
+    # loop over the detected QR codes
+    for obj in decoded_objs:
+        # extract the bounding box coordinates of the QR code
+        bbox = obj.rect
+        # draw a green rectangle around the QR code
+        cv2.rectangle(frame, (bbox.left, bbox.top), (bbox.left + bbox.width,      bbox.top + bbox.height), (0, 255, 0), 2)
+        # print the QR code data
+        print("Data:", obj.data)
+        ser.write(obj.data + b"\n")
+        if(obj.data == b'R1' or obj.data == b'R2' or obj.data == b'R3'):
+            break
+
+    # show the frame
+    cv2.imshow("QR Scanner", frame)
+
+    # wait for keypress
+    key = cv2.waitKey(1) & 0xFF
+
+    # if the `f` key was pressed, break from the loop
+    if key == ord("f"):
+        break
+
+# release the camera and close the window
+camera.release()
+cv2.destroyAllWindows()
